@@ -9,9 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initScrollAnimations();
     initParallaxEffects();
     initMagicCursor();
-    initQuotes();
     initBouquetBuilder();
-    initMusic();
+
 });
 
 // ============================================
@@ -987,72 +986,7 @@ function initParallaxEffects() {
 // ============================================
 window.scrollToSection = scrollToSection;
 
-// ============================================
-// QUOTES CAROUSEL
-// ============================================
-function initQuotes() {
-    const cards = document.querySelectorAll('.quote-card');
-    const dots = document.querySelectorAll('.quote-dot');
-    const prevBtn = document.getElementById('prev-quote');
-    const nextBtn = document.getElementById('next-quote');
-    let currentIndex = 0;
-    const intervalTime = 5000;
-    let quoteInterval;
 
-    function showQuote(index) {
-        // Handle wrapping
-        if (index < 0) index = cards.length - 1;
-        if (index >= cards.length) index = 0;
-
-        currentIndex = index;
-
-        // Update cards
-        cards.forEach(card => card.classList.remove('active'));
-        cards[currentIndex].classList.add('active');
-
-        // Update dots
-        dots.forEach(dot => dot.classList.remove('active'));
-        if (dots[currentIndex]) dots[currentIndex].classList.add('active');
-    }
-
-    function nextQuote() {
-        showQuote(currentIndex + 1);
-    }
-
-    function prevQuote() {
-        showQuote(currentIndex - 1);
-    }
-
-    // Event listeners
-    if (prevBtn) prevBtn.addEventListener('click', () => {
-        prevQuote();
-        resetInterval();
-    });
-
-    if (nextBtn) nextBtn.addEventListener('click', () => {
-        nextQuote();
-        resetInterval();
-    });
-
-    dots.forEach((dot, index) => {
-        dot.addEventListener('click', () => {
-            showQuote(index);
-            resetInterval();
-        });
-    });
-
-    function startInterval() {
-        quoteInterval = setInterval(nextQuote, intervalTime);
-    }
-
-    function resetInterval() {
-        clearInterval(quoteInterval);
-        startInterval();
-    }
-
-    // Start auto-rotation
-    startInterval();
-}
 
 // ============================================
 // BOUQUET BUILDER
@@ -1171,99 +1105,4 @@ function initBouquetBuilder() {
         createSparkles(rose, 5);
     }
 }
-// ============================================
-// BACKGROUND MUSIC (GENERATIVE AMBIENT)
-// ============================================
-function initMusic() {
-    const musicBtn = document.getElementById('music-toggle');
-    let audioContext = null;
-    let isPlaying = false;
-    let musicInterval = null;
-    let gainNode = null;
 
-    musicBtn.addEventListener('click', () => {
-        if (!isPlaying) {
-            startMusic();
-        } else {
-            stopMusic();
-        }
-    });
-
-    function startMusic() {
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
-
-        // Resume if suspended (browser autoplay policy)
-        if (audioContext.state === 'suspended') {
-            audioContext.resume();
-        }
-
-        isPlaying = true;
-        musicBtn.classList.add('playing');
-        musicBtn.innerHTML = '<span class="music-icon">⏸</span>';
-
-        // Create master gain for volume control
-        gainNode = audioContext.createGain();
-        gainNode.gain.setValueAtTime(0.05, audioContext.currentTime); // Low volume ambient
-        gainNode.connect(audioContext.destination);
-
-        // Start generative loop
-        playAmbientLoop();
-        musicInterval = setInterval(playAmbientLoop, 4000);
-    }
-
-    function stopMusic() {
-        isPlaying = false;
-        musicBtn.classList.remove('playing');
-        musicBtn.innerHTML = '<span class="music-icon">🎵</span>';
-
-        if (musicInterval) clearInterval(musicInterval);
-        if (gainNode) {
-            // Fade out
-            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 1);
-        }
-    }
-
-    function playAmbientLoop() {
-        if (!isPlaying) return;
-
-        // Gentle chord progression (Cm7 - Fm7 - Gm7 - Cm7)
-        // Root notes: C3, F3, G3, C3
-        const notes = [
-            [130.81, 155.56, 196.00, 233.08], // Cm7
-            [174.61, 207.65, 261.63, 311.13], // Fm7
-            [196.00, 233.08, 293.66, 349.23], // Gm7
-            [130.81, 155.56, 196.00, 233.08]  // Cm7
-        ];
-
-        const chord = notes[Math.floor(Math.random() * notes.length)];
-
-        chord.forEach((freq, i) => {
-            const osc = audioContext.createOscillator();
-            const oscGain = audioContext.createGain();
-
-            osc.type = Math.random() > 0.5 ? 'sine' : 'triangle';
-            osc.frequency.value = freq;
-
-            // Filter to make it soft
-            const filter = audioContext.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = 800;
-
-            osc.connect(filter);
-            filter.connect(oscGain);
-            oscGain.connect(gainNode);
-
-            const now = audioContext.currentTime;
-            const duration = 3.5; // Seconds
-
-            oscGain.gain.setValueAtTime(0, now);
-            oscGain.gain.linearRampToValueAtTime(0.03, now + 1); // Fade in
-            oscGain.gain.exponentialRampToValueAtTime(0.001, now + duration); // Fade out
-
-            osc.start(now);
-            osc.stop(now + duration);
-        });
-    }
-}
